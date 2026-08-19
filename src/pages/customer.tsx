@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import confetti from "canvas-confetti";
 import {
   useDB, cx, Badge, Btn, Field, inputCls, Ic, JOB_STATUS, PLOT_STATUS, SectionHead, toast, Modal, KV,
@@ -151,6 +151,7 @@ export function Home() {
 
 function VerifyForm() {
   const { db } = useDB();
+  const me = currentUser();
   const [f, setF] = useState({ state: "Telangana", district: "", mandal: "", village: "", surveyNo: "", extentAcres: "", owner: "" });
   const [err, setErr] = useState("");
   const set = (k: string, v: string) => setF((x) => ({ ...x, [k]: v }));
@@ -183,10 +184,10 @@ function VerifyForm() {
       </div>
       {err && <p className="mt-2 text-xs font-semibold text-clay-600">{err}</p>}
       <Btn className="mt-4 w-full" onClick={submit}>Open verification file <Ic.arrowR size={15} /></Btn>
-      {db.jobs.length > 0 && (
+      {db.jobs.some((j) => j.createdBy === (me?.id ?? "guest")) && (
         <div className="mt-4 border-t border-dashed border-line pt-3">
-          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-moss-400">Recent files</div>
-          {db.jobs.slice(0, 3).map((j) => (
+          <div className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-moss-400">Your recent files</div>
+          {db.jobs.filter((j) => j.createdBy === (me?.id ?? "guest")).slice(0, 3).map((j) => (
             <button key={j.id} onClick={() => navTo({ page: "verify", jobId: j.id })} className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-pine-50 cursor-pointer">
               <span className="font-mono text-xs font-semibold text-ink-800">{j.id} <span className="ml-2 font-body font-normal text-moss-500">{j.customerName}</span></span>
               <Badge tone={JOB_STATUS[j.status].tone} dot>{JOB_STATUS[j.status].label}</Badge>
@@ -432,6 +433,7 @@ export function Footer() {
 export function FindPlots({ initialProject }: { initialProject?: string }) {
   const { db } = useDB();
   const [proj, setProj] = useState<string>(initialProject ?? "p-meadows");
+  useEffect(() => { if (initialProject) setProj(initialProject); }, [initialProject]);
   const [facing, setFacing] = useState("All");
   const [maxPrice, setMaxPrice] = useState(40000);
   const [showAll, setShowAll] = useState(false);

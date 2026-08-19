@@ -133,7 +133,10 @@ export function getAttentionDigest(d: DB, user: User, prevLogin: string | null):
     arr.filter((x) => new Date((x.createdAt ?? x.at)!).getTime() > since).length;
   const sinceLogin = [
     { label: "New leads", count: countSince(scopeLeads(d, user)) },
-    { label: "Booking requests", count: countSince(d.bookings.filter((b) => !user.ventureId || plotVenture(d, b.plotId) === user.ventureId || isAdmin)) },
+    { label: "Booking requests", count: countSince(d.bookings.filter((b) =>
+      user.role === "admin" ? true :
+      user.ventureId ? plotVenture(d, b.plotId) === user.ventureId :
+      b.customerName === user.name)) },
     { label: "Document uploads", count: countSince(d.documents.filter((doc) => jobs.some((j) => j.id === doc.jobId)).map((doc) => ({ createdAt: doc.uploadedAt }))) },
     { label: "Survey completions", count: surveys.filter((s) => s.completedAt && new Date(s.completedAt).getTime() > since).length },
   ];

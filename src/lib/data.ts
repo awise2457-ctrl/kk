@@ -457,8 +457,10 @@ export function attemptCrossTenantRead(targetPlotId: string, byUser: User): { de
 
 export function startVerification(input: { state: string; district: string; mandal: string; village: string; surveyNo: string; extentAcres: number; owner: string }, by: User | null): VerificationJob {
   const prop: PropertyRef = { id: uid("PROP"), ...input, claimedOwner: input.owner };
+  let idNum = 130 + db.jobs.length;
+  while (db.jobs.some((j) => j.id === `VRF-${idNum}`)) idNum += 1 + Math.floor(Math.random() * 7);
   const job: VerificationJob = {
-    id: `VRF-${Math.floor(130 + db.jobs.length + Math.random() * 40)}`, propertyId: prop.id,
+    id: `VRF-${idNum}`, propertyId: prop.id,
     customerName: by?.name ?? "Guest", createdBy: by?.id ?? "guest", createdAt: new Date().toISOString(),
     status: "processing", confidence: 0, findings: [], flags: ["Awaiting documents — upload at least two for cross-checks"], reviewerNotes: "",
   };
@@ -673,8 +675,8 @@ export function cancelBooking(bookingId: string, by: string) {
     const bk = d.bookings.find((x) => x.id === bookingId); if (!bk || bk.status === "cancelled") return;
     bk.status = "cancelled";
     const p = d.plots.find((x) => x.id === bk.plotId);
-    if (p && p.status === "booking_requested") { p.status = "available"; p.heldBy = undefined; p.holdExpiry = undefined; p.version += 1; }
-    audit(by, "BOOKING_CANCELLED", `${bk.id} · ${bk.plotId}`, "warn");
+    if (p && ["booking_requested", "booked"].includes(p.status)) { p.status = "available"; p.heldBy = undefined; p.holdExpiry = undefined; p.version += 1; }
+    audit(by, "BOOKING_CANCELLED", `${bk.id} · ${bk.plotId} · plot released`, "warn", p?.ventureId);
   });
 }
 
