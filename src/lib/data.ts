@@ -77,7 +77,7 @@ export interface DB {
 
 /* ------------------------------- utilities ------------------------------ */
 
-const LS_KEY = "landsafe.db.v3";
+const LS_KEY = "landsafe.db.v4";
 let rngState = 42;
 function rng() {
   rngState = (rngState * 1664525 + 1013904223) % 4294967296;
@@ -372,7 +372,11 @@ function load(): DB | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as DB;
+    const d = JSON.parse(raw) as DB;
+    // schema guard: reject anything malformed so first render can never crash
+    const lists = [d.users, d.ventures, d.projects, d.plots, d.jobs, d.documents, d.surveys, d.leads, d.bookings, d.audit];
+    if (!lists.every(Array.isArray) || !d.providers || !Array.isArray(d.providers.gov) || !d.projects.length) return null;
+    return d;
   } catch { return null; }
 }
 function persist() {

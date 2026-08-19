@@ -1,6 +1,36 @@
+import React from "react";
 import { useDB, Toaster, Ic, Btn } from "./components/ui";
 import { useRoute, navTo } from "./lib/nav";
-import { currentUser, logout } from "./lib/data";
+import { currentUser, logout, resetDemo } from "./lib/data";
+
+/** Last line of defense: never show a blank page — show what actually broke. */
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="grid min-h-screen place-items-center bg-paper p-6">
+          <div className="w-full max-w-lg rounded-2xl border border-clay-600/30 bg-card p-7 shadow-xl">
+            <div className="flex items-center gap-2.5 text-clay-600">
+              <Ic.alert size={22} />
+              <h1 className="font-display text-xl font-extrabold text-ink-900">LandSafe hit a runtime error</h1>
+            </div>
+            <p className="mt-2 text-sm text-moss-500">The screen went dark because of the exception below. Resetting the demo data usually clears it.</p>
+            <pre className="mt-4 max-h-44 overflow-auto rounded-lg bg-ink-900 p-3 font-mono text-[11px] leading-relaxed text-marigold-500">
+              {this.state.error.message}
+            </pre>
+            <div className="mt-5 flex gap-2.5">
+              <Btn variant="danger" onClick={() => { try { resetDemo(); } catch { /* noop */ } location.reload(); }}>Reset demo data & reload</Btn>
+              <Btn variant="outline" onClick={() => location.reload()}>Just reload</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { PublicNav, Home, FindPlots, Footer } from "./pages/customer";
 import { VerificationDetail } from "./pages/verification";
 import { AdminShell } from "./pages/admin";
@@ -56,9 +86,10 @@ export default function App() {
   // signed-in user opening the app shell needs a sign-out affordance on home pages
   const onPublicPage = route.page === "home" || route.page === "find" || route.page === "verify" || route.page === "login";
   return (
-    <div className="min-h-screen">
-      <DemoRibbon />
-      {view}
+    <ErrorBoundary>
+      <div className="min-h-screen">
+        <DemoRibbon />
+        {view}
       {onPublicPage && user && route.page !== "login" && (
         <button
           onClick={() => { logout(); navTo({ page: "home" }); }}
@@ -73,6 +104,7 @@ export default function App() {
         </div>
       )}
       <Toaster />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
